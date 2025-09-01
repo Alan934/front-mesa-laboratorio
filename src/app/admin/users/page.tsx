@@ -12,7 +12,8 @@ type User = {
   role: Role;
   dni?: string | null;
   phone?: string | null;
-  profession?: string | null;
+  profession?: string | null; // name
+  professionId?: string | null; // id
 };
 
 type UpdatePayload = {
@@ -22,8 +23,10 @@ type UpdatePayload = {
   role: Role | undefined;
   dni: string | null;
   phone: string | null;
-  profession: string | null;
+  professionId: string | null;
 };
+
+type Profession = { id: string; name: string };
 
 export default function AdminUsersPage() {
   const [items, setItems] = useState<User[]>([]);
@@ -31,10 +34,11 @@ export default function AdminUsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<User>>({});
+  const [professions, setProfessions] = useState<Profession[]>([]);
 
   const byId = useMemo(() => Object.fromEntries(items.map(u => [u.id, u])), [items]);
 
-  async function load() {
+  async function loadUsers() {
     setLoading(true);
     setError(null);
     try {
@@ -50,19 +54,42 @@ export default function AdminUsersPage() {
     }
   }
 
+  async function loadProfessions() {
+    try {
+      const res = await fetch("/api/proxy/professions", { cache: "no-store" });
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      const data: Profession[] = await res.json();
+      setProfessions(data);
+    } catch (e) {
+      // Soft-fail; keep UI usable
+      console.error("Failed to load professions", e);
+    }
+  }
+
   useEffect(() => {
-    load();
+    loadUsers();
+    loadProfessions();
   }, []);
 
   function startEdit(id: string) {
     const u = byId[id];
     setEditingId(id);
-    setForm({ ...u });
+    // Ensure we carry over professionId if present; if not, try to infer from name
+    let professionId = u.professionId || null;
+    if (!professionId && u.profession) {
+      const match = professions.find(p => p.name === u.profession);
+      professionId = match ? match.id : null;
+    }
+    setForm({ ...u, professionId });
   }
 
   function cancelEdit() {
     setEditingId(null);
     setForm({});
+  }
+
+  async function load() {
+    await Promise.all([loadUsers(), loadProfessions()]);
   }
 
   async function saveEdit() {
@@ -76,9 +103,9 @@ export default function AdminUsersPage() {
         role: form.role,
         dni: form.dni || null,
         phone: form.phone || null,
-        profession: form.profession || null,
+        professionId: form.role === "PRACTITIONER" ? (form.professionId || null) : null,
       };
-      if (payload.role === "PRACTITIONER" && (!payload.profession || String(payload.profession).trim() === "")) {
+      if (payload.role === "PRACTITIONER" && (!payload.professionId || String(payload.professionId).trim() === "")) {
         throw new Error("Profession is required for practitioners");
       }
       const res = await fetch(`/api/proxy/admin/users/${editingId}`, {
@@ -220,13 +247,24 @@ export default function AdminUsersPage() {
                     </label>
                     <label className="grid gap-1.5 sm:col-span-2">
                       <span className="text-xs text-slate-600 dark:text-gray-400">Profesión</span>
-                      <input
-                        type="text"
-                        value={form.profession || ""}
-                        onChange={(e) => setForm((f) => ({ ...f, profession: e.target.value }))}
+                      <select
+                        value={form.professionId || ""}
+                        onChange={(e) => {
+                          const pid = e.target.value || null;
+                          const p = professions.find(x => x.id === pid) || null;
+                          setForm((f) => ({ ...f, professionId: pid, profession: p?.name || null }));
+                        }}
                         className="rounded-md border border-slate-300/70 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm"
-                        placeholder="Requerido si es PRACTITIONER"
-                      />
+                        disabled={form.role !== "PRACTITIONER"}
+                      >
+                        <option value="">{form.role === "PRACTITIONER" ? "Selecciona una profesión" : "No aplica"}</option>
+                        {professions.map((p) => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                      {form.role === "PRACTITIONER" && !form.professionId && (
+                        <span className="text-[11px] text-rose-600 dark:text-rose-400">Requerido para PRACTITIONER</span>
+                      )}
                     </label>
                   </div>
                   <div className="flex gap-2">

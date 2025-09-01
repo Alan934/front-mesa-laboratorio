@@ -19,32 +19,64 @@ type Practitioner = {
   lastName?: string | null;
 };
 
+type Profession = { id: string; name: string };
+
+function toInputLocal(d: Date): string {
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const y = d.getFullYear();
+  const m = pad(d.getMonth() + 1);
+  const day = pad(d.getDate());
+  const h = pad(d.getHours());
+  const min = pad(d.getMinutes());
+  return `${y}-${m}-${day}T${h}:${min}`;
+}
+
 export default function AppointmentsPage() {
   const [items, setItems] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [practitioners, setPractitioners] = useState<Practitioner[]>([]);
+  const [professions, setProfessions] = useState<Profession[]>([]);
+  const [selectedProfessionId, setSelectedProfessionId] = useState<string>("");
+  const [practitionersLoading, setPractitionersLoading] = useState<boolean>(false);
   const [form, setForm] = useState({ practitionerId: "", startAt: "", endAt: "", description: "" });
 
   const practitionersById = useMemo(() => Object.fromEntries(practitioners.map(p => [p.id, p])), [practitioners]);
+
+  const nowStr = toInputLocal(new Date());
+  const minEndStr = form.startAt && form.startAt > nowStr ? form.startAt : nowStr;
+
+  async function fetchProfessions(): Promise<Profession[]> {
+    const res = await fetch("/api/proxy/professions", { cache: "no-store" });
+    if (!res.ok) throw new Error(`Error ${res.status}`);
+    return res.json();
+  }
+
+  async function fetchPractitioners(professionId?: string): Promise<Practitioner[]> {
+    const qs = professionId ? `?professionId=${encodeURIComponent(professionId)}` : "";
+    const res = await fetch(`/api/proxy/users/practitioners${qs}`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`Error ${res.status}`);
+    return res.json();
+  }
+
+  async function fetchAppointments(): Promise<Appointment[]> {
+    const res = await fetch("/api/proxy/appointments", { cache: "no-store" });
+    if (!res.ok) throw new Error(`Error ${res.status}`);
+    return res.json();
+  }
 
   async function load() {
     setLoading(true);
     setError(null);
     try {
-      const [appsRes, practRes] = await Promise.all([
-        fetch("/api/proxy/appointments", { cache: "no-store" }),
-        fetch("/api/proxy/users/practitioners", { cache: "no-store" }),
+      // Load professions and appointments; do not auto-select profession/practitioner
+      const [profs, apps] = await Promise.all([
+        fetchProfessions(),
+        fetchAppointments(),
       ]);
-      if (!appsRes.ok) throw new Error(`Error ${appsRes.status}`);
-      if (!practRes.ok) throw new Error(`Error ${practRes.status}`);
-      const [apps, practs] = await Promise.all([appsRes.json(), practRes.json()]);
+      setProfessions(profs);
       setItems(apps);
-      setPractitioners(practs);
-      // Preseleccionar primer practitioner si no hay uno elegido
-      if (!form.practitionerId && practs.length > 0) {
-        setForm((f) => ({ ...f, practitionerId: practs[0].id }));
-      }
+      // Keep current selections as-is; if invalid, they will be adjusted in the effect below
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Unexpected error";
       setError(message);
@@ -57,6 +89,36 @@ export default function AppointmentsPage() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // When profession changes, refetch practitioners and keep appointments list intact
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        if (!selectedProfessionId) {
+          setPractitioners([]);
+          setForm((f) => ({ ...f, practitionerId: "" }));
+          return;
+        }
+        setPractitionersLoading(true);
+        const practs = await fetchPractitioners(selectedProfessionId);
+        if (!active) return;
+        setPractitioners(practs);
+        // If previously selected practitioner is not in the new list, clear selection
+        if (!practs.find(p => p.id === form.practitionerId)) {
+          setForm((f) => ({ ...f, practitionerId: "" }));
+        }
+      } catch (e: unknown) {
+        if (!active) return;
+        const message = e instanceof Error ? e.message : "Unexpected error";
+        setError(message);
+      } finally {
+        if (active) setPractitionersLoading(false);
+      }
+    })();
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProfessionId]);
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
@@ -76,7 +138,7 @@ export default function AppointmentsPage() {
         const text = await res.text();
         throw new Error(text || `Error ${res.status}`);
       }
-      setForm({ practitionerId: practitioners[0]?.id || "", startAt: "", endAt: "", description: "" });
+      setForm({ practitionerId: "", startAt: "", endAt: "", description: "" });
       load();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Unexpected error";
@@ -122,32 +184,73 @@ export default function AppointmentsPage() {
           <h2 className="text-lg font-semibold text-slate-800 dark:text-gray-100">New appointment</h2>
           <form onSubmit={create} className="mt-4 grid grid-cols-1 gap-4">
             <label className="grid gap-1.5">
+              <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Profession</span>
+              <select
+                value={selectedProfessionId}
+                onChange={(e) => setSelectedProfessionId(e.target.value)}
+                className="rounded-md border border-slate-300/70 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-slate-900 dark:text-gray-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/60"
+              >
+                <option value="">Selecciona una profesión</option>
+                {professions.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="grid gap-1.5">
               <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Practitioner</span>
               <select
                 value={form.practitionerId}
                 onChange={(e) => setForm((f) => ({ ...f, practitionerId: e.target.value }))}
                 required
+                disabled={!selectedProfessionId}
                 className="rounded-md border border-slate-300/70 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-slate-900 dark:text-gray-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/60"
               >
-                {practitioners.length === 0 ? (
+                {!selectedProfessionId ? (
                   <option value="" disabled>
-                    No practitioners available
+                    Selecciona una profesión
+                  </option>
+                ) : practitionersLoading ? (
+                  <option value="" disabled>
+                    Cargando profesionales...
+                  </option>
+                ) : practitioners.length === 0 ? (
+                  <option value="" disabled>
+                    No hay profesionales disponibles
                   </option>
                 ) : (
-                  practitioners.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {fullName(p)}
+                  <>
+                    <option value="" disabled>
+                      Selecciona un profesional
                     </option>
-                  ))
+                    {practitioners.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {fullName(p)}
+                      </option>
+                    ))}
+                  </>
                 )}
               </select>
+              {practitionersLoading && selectedProfessionId && (
+                <div className="mt-1 flex items-center gap-2 text-xs text-slate-600 dark:text-gray-400">
+                  <span className="inline-block w-3.5 h-3.5 border-2 border-slate-400/60 border-t-transparent rounded-full animate-spin" />
+                  Cargando profesionales...
+                </div>
+              )}
             </label>
             <label className="grid gap-1.5">
               <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Start</span>
               <input
                 type="datetime-local"
                 value={form.startAt}
-                onChange={(e) => setForm((f) => ({ ...f, startAt: e.target.value }))}
+                min={nowStr}
+                onChange={(e) => {
+                  let v = e.target.value;
+                  if (v && v < nowStr) v = nowStr;
+                  setForm((f) => ({ ...f, startAt: v }));
+                }}
                 className="rounded-md border border-slate-300/70 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-slate-900 dark:text-gray-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/60"
                 required
               />
@@ -157,7 +260,13 @@ export default function AppointmentsPage() {
               <input
                 type="datetime-local"
                 value={form.endAt}
-                onChange={(e) => setForm((f) => ({ ...f, endAt: e.target.value }))}
+                min={minEndStr}
+                onChange={(e) => {
+                  let v = e.target.value;
+                  const minE = minEndStr;
+                  if (v && v < minE) v = minE;
+                  setForm((f) => ({ ...f, endAt: v }));
+                }}
                 className="rounded-md border border-slate-300/70 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-slate-900 dark:text-gray-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/60"
                 required
               />
