@@ -17,17 +17,14 @@ export async function GET(req: Request): Promise<Response> {
       try {
         const { token } = await auth0.getAccessToken();
         if (!API_BASE) throw new Error('BACKEND_URL is not configured');
-        const res = await fetch(`${API_BASE}/api/users/me`, {
+        const res = await fetch(`${API_BASE}/api/users/me/schedule`, {
           headers: { Authorization: `Bearer ${token}` },
           cache: 'no-store',
         });
         const text = await res.text();
-        return new Response(text, {
-          status: res.status,
-          headers: { 'content-type': res.headers.get('content-type') || 'application/json' },
-        });
+        return new Response(text, { status: res.status, headers: { 'content-type': res.headers.get('content-type') || 'application/json' } });
       } catch (e: unknown) {
-        console.error('Proxy GET /api/proxy/users/me (inner) failed:', e);
+        console.error('Proxy GET /api/proxy/users/me/schedule (inner) failed:', e);
         const message = e instanceof Error ? e.message : 'Proxy error';
         return new Response(JSON.stringify({ message }), {
           status: 502,
@@ -37,7 +34,7 @@ export async function GET(req: Request): Promise<Response> {
     });
     return await (handler as (req: Request) => Promise<Response>)(req);
   } catch (e: unknown) {
-    console.error('Proxy GET /api/proxy/users/me (outer) failed:', e);
+    console.error('Proxy GET /api/proxy/users/me/schedule (outer) failed:', e);
     const status = getStatusFromError(e, 401);
     const message = e instanceof Error ? e.message : 'Unauthorized';
     return new Response(JSON.stringify({ message }), {
@@ -54,18 +51,15 @@ export async function PUT(req: Request): Promise<Response> {
         const { token } = await auth0.getAccessToken();
         if (!API_BASE) throw new Error('BACKEND_URL is not configured');
         const body = await req.text();
-        const res = await fetch(`${API_BASE}/api/users/me`, {
+        const res = await fetch(`${API_BASE}/api/users/me/schedule`, {
           method: 'PUT',
           headers: { Authorization: `Bearer ${token}`, 'content-type': 'application/json' },
           body,
         });
         const text = await res.text();
-        return new Response(text, {
-          status: res.status,
-          headers: { 'content-type': res.headers.get('content-type') || 'application/json' },
-        });
+        return new Response(text, { status: res.status, headers: { 'content-type': res.headers.get('content-type') || 'application/json' } });
       } catch (e: unknown) {
-        console.error('Proxy PUT /api/proxy/users/me (inner) failed:', e);
+        console.error('Proxy PUT /api/proxy/users/me/schedule (inner) failed:', e);
         const message = e instanceof Error ? e.message : 'Proxy error';
         return new Response(JSON.stringify({ message }), {
           status: 502,
@@ -75,7 +69,7 @@ export async function PUT(req: Request): Promise<Response> {
     });
     return await (handler as (req: Request) => Promise<Response>)(req);
   } catch (e: unknown) {
-    console.error('Proxy PUT /api/proxy/users/me (outer) failed:', e);
+    console.error('Proxy PUT /api/proxy/users/me/schedule (outer) failed:', e);
     const status = getStatusFromError(e, 401);
     const message = e instanceof Error ? e.message : 'Unauthorized';
     return new Response(JSON.stringify({ message }), {

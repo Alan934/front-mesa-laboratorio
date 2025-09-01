@@ -58,7 +58,10 @@ export default async function Nav() {
           <div className="flex items-center gap-4 text-sm font-medium text-slate-600 dark:text-gray-300">
             <Link href="/" className="hover:text-slate-900 dark:hover:text-white transition-colors">Home</Link>
             {user && (
-              <Link href="/appointments" className="hover:text-slate-900 dark:hover:text-white transition-colors">My Appointments</Link>
+              <>
+                <Link href="/appointments" className="hover:text-slate-900 dark:hover:text-white transition-colors">My Appointments</Link>
+                <Link href="/profile" className="hover:text-slate-900 dark:hover:text-white transition-colors">Profile</Link>
+              </>
             )}
             {isAdmin && (
               <>
