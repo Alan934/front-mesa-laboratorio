@@ -16,25 +16,9 @@ const client = new Auth0Client({
   },
 });
 
-// Simple polyfill for protecting API handlers for App Router
-function withApiAuthRequiredPolyfill<Ctx = unknown>(
-  handler: (req: Request, ctx?: Ctx) => Promise<Response>
-) {
-  return async (req: Request, ctx?: Ctx) => {
-    const session = await client.getSession();
-    if (!session?.user) {
-      return new Response(JSON.stringify({ message: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'content-type': 'application/json' },
-      });
-    }
-    return handler(req, ctx);
-  };
-}
-
 export const auth0 = {
   // Sessions
-  getSession: () => client.getSession(),
+  getSession: (req?: NextRequest | Request) => client.getSession(req as any),
 
   // Access Token shim returning { token }
   async getAccessToken(options?: Record<string, unknown>): Promise<{ token: string }> {
@@ -43,8 +27,8 @@ export const auth0 = {
     return { token: result.token };
   },
 
-  // API guard for App Router route handlers
-  withApiAuthRequired: withApiAuthRequiredPolyfill,
+  // API guard oficial del SDK (soporta App Router y Pages Router)
+  withApiAuthRequired: client.withApiAuthRequired.bind(client),
 
   // Mount SDK route handler via middleware for App Router auth routes
   middleware: (req: NextRequest) => client.middleware(req),
