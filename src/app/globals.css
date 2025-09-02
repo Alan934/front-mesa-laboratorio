@@ -26,3 +26,12 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
 }
+
+/* Global: show pointer (hand) on hover for buttons */
+button:not(:disabled):hover,
+[type="button"]:not(:disabled):hover,
+[type="submit"]:not(:disabled):hover,
+[type="reset"]:not(:disabled):hover,
+[role="button"]:hover {
+  cursor: pointer;
+}
