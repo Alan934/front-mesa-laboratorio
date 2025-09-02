@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 // Local types mirroring backend DTOs
 type Role = 'CLIENT' | 'PRACTITIONER' | 'ADMIN'
@@ -68,11 +68,6 @@ export default function ProfilePage() {
 
   const isPractitioner = me?.role === 'PRACTITIONER'
 
-  const selectedProfession = useMemo(
-    () => professions.find((p) => p.id === form.professionId),
-    [professions, form.professionId]
-  )
-
   async function fetchMe(): Promise<User> {
     const res = await fetch('/api/proxy/users/me', { cache: 'no-store' })
     if (!res.ok) throw new Error(await res.text() || `Error ${res.status}`)
@@ -123,8 +118,9 @@ export default function ProfilePage() {
         const days = await fetchSchedule()
         initSchedule(days)
       }
-    } catch (e: any) {
-      setError(e?.message || 'Error loading profile')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Error al cargar el perfil'
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -177,12 +173,11 @@ export default function ProfilePage() {
     setSuccess(null)
     setSavingProfile(true)
     try {
-      const payload: any = {
-        firstName: form.firstName || undefined,
-        lastName: form.lastName || undefined,
-        dni: form.dni || undefined,
-        phone: form.phone || undefined,
-      }
+      const payload: { firstName?: string; lastName?: string; dni?: string; phone?: string; professionId?: string; profession?: string } = {}
+      if (form.firstName) payload.firstName = form.firstName
+      if (form.lastName) payload.lastName = form.lastName
+      if (form.dni) payload.dni = form.dni
+      if (form.phone) payload.phone = form.phone
       if (isPractitioner) {
         if (form.professionId && form.professionId !== '__other') payload.professionId = form.professionId
         else if (form.profession) payload.profession = form.profession
@@ -192,12 +187,13 @@ export default function ProfilePage() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      if (!res.ok) throw new Error(await res.text() || `Error ${res.status}`)
+      if (!res.ok) throw new Error((await res.text()) || `Error ${res.status}`)
       const updated = (await res.json()) as User
       setMe(updated)
       setSuccess('Perfil actualizado')
-    } catch (e: any) {
-      setError(e?.message || 'Error al guardar el perfil')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Error al guardar el perfil'
+      setError(msg)
     } finally {
       setSavingProfile(false)
     }
@@ -228,10 +224,11 @@ export default function ProfilePage() {
         headers: { 'content-type': 'application/json' },
         body,
       })
-      if (!res.ok) throw new Error(await res.text() || `Error ${res.status}`)
+      if (!res.ok) throw new Error((await res.text()) || `Error ${res.status}`)
       setSuccess('Horario actualizado')
-    } catch (e: any) {
-      setError(e?.message || 'Error al guardar el horario')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Error al guardar el horario'
+      setError(msg)
     } finally {
       setSavingSchedule(false)
     }
@@ -247,7 +244,7 @@ export default function ProfilePage() {
 
   if (!me) {
     return (
-      <div className="mx-auto max-w-5xl p-6 text-slate-700 dark:text-gray-300">No user data.</div>
+      <div className="mx-auto max-w-5xl p-6 text-slate-700 dark:text-gray-300">No hay datos de usuario.</div>
     )
   }
 
@@ -266,28 +263,30 @@ export default function ProfilePage() {
       <form onSubmit={saveProfile} className="rounded-xl bg-white/70 dark:bg-gray-900/50 shadow-sm ring-1 ring-slate-200/70 dark:ring-gray-800/70 p-5 sm:p-6 grid gap-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm text-slate-600 dark:text-gray-400">Nombre</label>
-            <input value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} className="mt-1 w-full rounded-md border border-slate-300/70 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm" />
+            <label htmlFor="firstName" className="block text-sm text-slate-600 dark:text-gray-400">Nombre</label>
+            <input id="firstName" placeholder="Ej: Ana" value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} className="mt-1 w-full rounded-md border border-slate-300/70 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm" />
           </div>
           <div>
-            <label className="block text-sm text-slate-600 dark:text-gray-400">Apellido</label>
-            <input value={form.lastName} onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))} className="mt-1 w-full rounded-md border border-slate-300/70 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm" />
+            <label htmlFor="lastName" className="block text-sm text-slate-600 dark:text-gray-400">Apellido</label>
+            <input id="lastName" placeholder="Ej: Pérez" value={form.lastName} onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))} className="mt-1 w-full rounded-md border border-slate-300/70 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm" />
           </div>
           <div>
-            <label className="block text-sm text-slate-600 dark:text-gray-400">DNI</label>
-            <input value={form.dni} onChange={(e) => setForm((f) => ({ ...f, dni: e.target.value }))} className="mt-1 w-full rounded-md border border-slate-300/70 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm" />
+            <label htmlFor="dni" className="block text-sm text-slate-600 dark:text-gray-400">DNI</label>
+            <input id="dni" placeholder="Ej: 12.345.678" value={form.dni} onChange={(e) => setForm((f) => ({ ...f, dni: e.target.value }))} className="mt-1 w-full rounded-md border border-slate-300/70 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm" />
           </div>
           <div>
-            <label className="block text-sm text-slate-600 dark:text-gray-400">Celular</label>
-            <input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className="mt-1 w-full rounded-md border border-slate-300/70 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm" />
+            <label htmlFor="phone" className="block text-sm text-slate-600 dark:text-gray-400">Celular</label>
+            <input id="phone" placeholder="Ej: +54 9 11 1234-5678" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className="mt-1 w-full rounded-md border border-slate-300/70 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm" />
           </div>
         </div>
 
         {isPractitioner && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-slate-600 dark:text-gray-400">Profesión</label>
+              <label htmlFor="professionId" className="block text-sm text-slate-600 dark:text-gray-400">Profesión</label>
               <select
+                id="professionId"
+                title="Profesión"
                 className="mt-1 w-full rounded-md border border-slate-300/70 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm"
                 value={form.professionId || ''}
                 onChange={(e) => setForm((f) => ({ ...f, professionId: e.target.value, profession: '' }))}
@@ -301,8 +300,8 @@ export default function ProfilePage() {
             </div>
             {form.professionId === '__other' && (
               <div>
-                <label className="block text-sm text-slate-600 dark:text-gray-400">Otra profesión</label>
-                <input value={form.profession} onChange={(e) => setForm((f) => ({ ...f, profession: e.target.value }))} className="mt-1 w-full rounded-md border border-slate-300/70 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm" />
+                <label htmlFor="professionOther" className="block text-sm text-slate-600 dark:text-gray-400">Otra profesión</label>
+                <input id="professionOther" placeholder="Ej: Podólogo" value={form.profession} onChange={(e) => setForm((f) => ({ ...f, profession: e.target.value }))} className="mt-1 w-full rounded-md border border-slate-300/70 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm" />
               </div>
             )}
           </div>
@@ -332,6 +331,8 @@ export default function ProfilePage() {
                         className="mr-2"
                         checked={enabled}
                         onChange={(e) => toggleDay(d.key, e.target.checked)}
+                        aria-label={`Activar ${d.label}`}
+                        title={`Activar ${d.label}`}
                       />
                       {d.label}
                     </label>
@@ -347,6 +348,8 @@ export default function ProfilePage() {
                             value={i.startTime}
                             onChange={(e) => updateInterval(d.key, idx, 'startTime', e.target.value)}
                             className="w-32 rounded-md border border-slate-300/70 dark:border-gray-700 bg-white dark:bg-gray-950 px-2 py-1 text-sm"
+                            aria-label="Hora de inicio"
+                            title="Hora de inicio"
                           />
                           <span className="text-sm">a</span>
                           <input
@@ -354,6 +357,8 @@ export default function ProfilePage() {
                             value={i.endTime}
                             onChange={(e) => updateInterval(d.key, idx, 'endTime', e.target.value)}
                             className="w-32 rounded-md border border-slate-300/70 dark:border-gray-700 bg-white dark:bg-gray-950 px-2 py-1 text-sm"
+                            aria-label="Hora de fin"
+                            title="Hora de fin"
                           />
                           <button type="button" onClick={() => removeInterval(d.key, idx)} className="text-xs rounded-md border px-2 py-1">Eliminar</button>
                         </div>

@@ -47,7 +47,7 @@ export default function AdminUsersPage() {
       const data: User[] = await res.json();
       setItems(data);
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Unexpected error";
+      const message = e instanceof Error ? e.message : "Error inesperado";
       setError(message);
     } finally {
       setLoading(false);
@@ -106,7 +106,7 @@ export default function AdminUsersPage() {
         professionId: form.role === "PRACTITIONER" ? (form.professionId || null) : null,
       };
       if (payload.role === "PRACTITIONER" && (!payload.professionId || String(payload.professionId).trim() === "")) {
-        throw new Error("Profession is required for practitioners");
+        throw new Error("La profesión es obligatoria para profesionales");
       }
       const res = await fetch(`/api/proxy/admin/users/${editingId}`, {
         method: "PUT",
@@ -121,13 +121,13 @@ export default function AdminUsersPage() {
       setForm({});
       await load();
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Unexpected error";
+      const message = e instanceof Error ? e.message : "Error inesperado";
       setError(message);
     }
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete user? This cannot be undone.")) return;
+    if (!confirm("¿Eliminar usuario? Esta acción no se puede deshacer.")) return;
     setError(null);
     try {
       const res = await fetch(`/api/proxy/admin/users/${id}`, { method: "DELETE" });
@@ -137,7 +137,7 @@ export default function AdminUsersPage() {
       }
       await load();
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Unexpected error";
+      const message = e instanceof Error ? e.message : "Error inesperado";
       setError(message);
     }
   }
@@ -154,13 +154,13 @@ export default function AdminUsersPage() {
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600">
             Admin • Usuarios
           </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-gray-400">Gestiona los usuarios, edítalos o elimínalos.</p>
+          <p className="mt-1 text-sm text-slate-600 dark:text-gray-400">Gestioná usuarios: editá o eliminá.</p>
         </div>
         <button
           onClick={load}
           className="hidden sm:inline-flex items-center rounded-md border border-slate-300/70 dark:border-gray-700 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-800 transition"
         >
-          Refresh
+          Actualizar
         </button>
       </div>
 
@@ -177,7 +177,7 @@ export default function AdminUsersPage() {
           <div className="animate-pulse h-20 rounded-lg bg-slate-200/70 dark:bg-gray-800/70" />
         </div>
       ) : items.length === 0 ? (
-        <div className="mt-6 text-sm text-slate-600 dark:text-gray-400">No users.</div>
+        <div className="mt-6 text-sm text-slate-600 dark:text-gray-400">Sin usuarios.</div>
       ) : (
         <ul className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           {items.map((u) => (
@@ -314,7 +314,7 @@ export default function AdminUsersPage() {
           onClick={load}
           className="mt-4 inline-flex items-center rounded-md border border-slate-300/70 dark:border-gray-700 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-800 transition"
         >
-          Refresh
+          Actualizar
         </button>
       </div>
     </div>

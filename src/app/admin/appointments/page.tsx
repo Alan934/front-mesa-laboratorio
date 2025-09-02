@@ -42,7 +42,7 @@ export default function AdminAppointmentsPage() {
       setItems(apps);
       setPractitioners(practs);
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Unexpected error";
+      const message = e instanceof Error ? e.message : "Error inesperado";
       setError(message);
     } finally {
       setLoading(false);
@@ -82,6 +82,12 @@ export default function AdminAppointmentsPage() {
       "bg-rose-100 text-rose-800 ring-1 ring-rose-700/20 dark:bg-rose-500/15 dark:text-rose-300 dark:ring-rose-300/20",
   };
 
+  const statusLabel: Record<Appointment["status"], string> = {
+    PENDING: "PENDIENTE",
+    APPROVED: "APROBADO",
+    CANCELED: "CANCELADO",
+  };
+
   function fullName(p: Practitioner | undefined) {
     if (!p) return "";
     const name = [p.firstName, p.lastName].filter(Boolean).join(" ");
@@ -93,15 +99,15 @@ export default function AdminAppointmentsPage() {
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600">
-            Admin • Appointments
+            Admin • Turnos
           </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-gray-400">Review, approve or cancel appointments.</p>
+          <p className="mt-1 text-sm text-slate-600 dark:text-gray-400">Revisá, aprobá o cancelá turnos.</p>
         </div>
         <button
           onClick={load}
           className="hidden sm:inline-flex items-center rounded-md border border-slate-300/70 dark:border-gray-700 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-800 transition"
         >
-          Refresh
+          Actualizar
         </button>
       </div>
 
@@ -118,7 +124,7 @@ export default function AdminAppointmentsPage() {
           <div className="animate-pulse h-20 rounded-lg bg-slate-200/70 dark:bg-gray-800/70" />
         </div>
       ) : items.length === 0 ? (
-        <div className="mt-6 text-sm text-slate-600 dark:text-gray-400">No appointments.</div>
+        <div className="mt-6 text-sm text-slate-600 dark:text-gray-400">Sin turnos.</div>
       ) : (
         <ul className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           {items.map((a) => (
@@ -126,17 +132,17 @@ export default function AdminAppointmentsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${statusStyles[a.status]}`}>
-                    {a.status}
+                    {statusLabel[a.status]}
                   </div>
                   <div className="mt-2 font-medium text-slate-900 dark:text-gray-100">
-                    {new Date(a.startAt).toLocaleString()} → {new Date(a.endAt).toLocaleString()}
+                    {new Date(a.startAt).toLocaleString("es-AR")} → {new Date(a.endAt).toLocaleString("es-AR")}
                   </div>
                   <div className="mt-1 text-xs text-slate-600 dark:text-gray-400">
-                    Client: {a.clientName || <code className="text-[11px]">{a.clientId}</code>}
+                    Cliente: {a.clientName || <code className="text-[11px]">{a.clientId}</code>}
                   </div>
                   {a.practitionerId && (
                     <div className="mt-0.5 text-xs text-slate-600 dark:text-gray-400">
-                      Practitioner: {fullName(practitionersById[a.practitionerId]) || a.practitionerId}
+                      Profesional: {fullName(practitionersById[a.practitionerId]) || a.practitionerId}
                     </div>
                   )}
                   {a.description && (
@@ -149,14 +155,14 @@ export default function AdminAppointmentsPage() {
                     disabled={a.status !== "PENDING"}
                     className="inline-flex items-center justify-center rounded-md bg-emerald-600 text-white px-2.5 py-1.5 text-xs font-semibold shadow-sm hover:opacity-90 active:opacity-80 disabled:opacity-40"
                   >
-                    Approve
+                    Aprobar
                   </button>
                   <button
                     onClick={() => cancel(a.id)}
                     disabled={a.status === "CANCELED"}
                     className="inline-flex items-center justify-center rounded-md bg-rose-600 text-white px-2.5 py-1.5 text-xs font-semibold shadow-sm hover:opacity-90 active:opacity-80 disabled:opacity-40"
                   >
-                    Cancel
+                    Cancelar
                   </button>
                 </div>
               </div>
@@ -170,7 +176,7 @@ export default function AdminAppointmentsPage() {
           onClick={load}
           className="mt-4 inline-flex items-center rounded-md border border-slate-300/70 dark:border-gray-700 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-800 transition"
         >
-          Refresh
+          Actualizar
         </button>
       </div>
     </div>

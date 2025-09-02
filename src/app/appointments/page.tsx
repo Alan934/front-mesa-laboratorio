@@ -52,6 +52,14 @@ export default function AppointmentsPage() {
   const nowStr = toInputLocal(new Date());
   const minEndStr = form.startAt && form.startAt > nowStr ? form.startAt : nowStr;
 
+  // Utilidades para UI en español
+  const statusLabel: Record<Appointment["status"], string> = {
+    PENDING: "PENDIENTE",
+    APPROVED: "APROBADO",
+    CANCELED: "CANCELADO",
+  };
+  const formatDate = (iso: string) => new Date(iso).toLocaleString("es-AR");
+
   async function fetchProfessions(): Promise<Profession[]> {
     const res = await fetch("/api/proxy/professions", { cache: "no-store" });
     if (!res.ok) throw new Error(`Error ${res.status}`);
@@ -92,7 +100,7 @@ export default function AppointmentsPage() {
       setMe(meData);
       // Keep current selections as-is; if invalid, they will be adjusted in the effect below
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Unexpected error";
+      const message = e instanceof Error ? e.message : "Error inesperado";
       setError(message);
     } finally {
       setLoading(false);
@@ -124,7 +132,7 @@ export default function AppointmentsPage() {
         }
       } catch (e: unknown) {
         if (!active) return;
-        const message = e instanceof Error ? e.message : "Unexpected error";
+        const message = e instanceof Error ? e.message : "Error inesperado";
         setError(message);
       } finally {
         if (active) setPractitionersLoading(false);
@@ -155,7 +163,7 @@ export default function AppointmentsPage() {
       setForm({ practitionerId: "", startAt: "", endAt: "", description: "" });
       load();
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Unexpected error";
+      const message = e instanceof Error ? e.message : "Error inesperado";
       setError(message);
     }
   }
@@ -200,25 +208,25 @@ export default function AppointmentsPage() {
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600">
-            My Appointments
+            Mis turnos
           </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-gray-400">Create and manage your appointments.</p>
+          <p className="mt-1 text-sm text-slate-600 dark:text-gray-400">Creá y gestioná tus turnos.</p>
         </div>
         <button
           onClick={load}
           className="hidden sm:inline-flex items-center rounded-md border border-slate-300/70 dark:border-gray-700 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-800 transition"
         >
-          Refresh
+          Actualizar
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Form card */}
         <section className="lg:col-span-1 rounded-xl bg-white/70 dark:bg-gray-900/50 shadow-sm ring-1 ring-slate-200/70 dark:ring-gray-800/70 p-5 sm:p-6">
-          <h2 className="text-lg font-semibold text-slate-800 dark:text-gray-100">New appointment</h2>
+          <h2 className="text-lg font-semibold text-slate-800 dark:text-gray-100">Nuevo turno</h2>
           <form onSubmit={create} className="mt-4 grid grid-cols-1 gap-4">
             <label className="grid gap-1.5">
-              <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Profession</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Profesión</span>
               <select
                 value={selectedProfessionId}
                 onChange={(e) => setSelectedProfessionId(e.target.value)}
@@ -234,7 +242,7 @@ export default function AppointmentsPage() {
             </label>
 
             <label className="grid gap-1.5">
-              <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Practitioner</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Profesional</span>
               <select
                 value={form.practitionerId}
                 onChange={(e) => setForm((f) => ({ ...f, practitionerId: e.target.value }))}
@@ -275,7 +283,7 @@ export default function AppointmentsPage() {
               )}
             </label>
             <label className="grid gap-1.5">
-              <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Start</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Inicio</span>
               <input
                 type="datetime-local"
                 value={form.startAt}
@@ -290,7 +298,7 @@ export default function AppointmentsPage() {
               />
             </label>
             <label className="grid gap-1.5">
-              <span className="text-sm font-medium text-slate-700 dark:text-gray-300">End</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Fin</span>
               <input
                 type="datetime-local"
                 value={form.endAt}
@@ -306,14 +314,14 @@ export default function AppointmentsPage() {
               />
             </label>
             <label className="grid gap-1.5">
-              <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Description</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-gray-300">Descripción</span>
               <input
                 type="text"
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 className="rounded-md border border-slate-300/70 dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-slate-900 dark:text-gray-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/60"
                 maxLength={500}
-                placeholder="Optional"
+                placeholder="Opcional"
               />
             </label>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -322,14 +330,14 @@ export default function AppointmentsPage() {
                 className="inline-flex items-center justify-center rounded-md bg-slate-900 text-white dark:bg-white dark:text-gray-900 px-4 py-2 text-sm font-semibold shadow-sm hover:opacity-90 active:opacity-80 transition"
                 disabled={!form.practitionerId}
               >
-                Create
+                Crear
               </button>
               <button
                 type="button"
                 onClick={load}
                 className="inline-flex items-center justify-center rounded-md border border-slate-300/70 dark:border-gray-700 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-800 transition"
               >
-                Refresh
+                Actualizar
               </button>
             </div>
           </form>
@@ -344,12 +352,12 @@ export default function AppointmentsPage() {
         {/* List card */}
         <section className="lg:col-span-2 rounded-xl bg-white/70 dark:bg-gray-900/50 shadow-sm ring-1 ring-slate-200/70 dark:ring-gray-800/70 p-5 sm:p-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-800 dark:text-gray-100">Upcoming</h2>
+            <h2 className="text-lg font-semibold text-slate-800 dark:text-gray-100">Próximos</h2>
             <button
               onClick={load}
               className="sm:hidden inline-flex items-center rounded-md border border-slate-300/70 dark:border-gray-700 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-800 transition"
             >
-              Refresh
+              Actualizar
             </button>
           </div>
 
@@ -360,7 +368,7 @@ export default function AppointmentsPage() {
               <div className="animate-pulse h-20 rounded-lg bg-slate-200/70 dark:bg-gray-800/70" />
             </div>
           ) : items.length === 0 ? (
-            <div className="mt-6 text-sm text-slate-600 dark:text-gray-400">No appointments yet.</div>
+            <div className="mt-6 text-sm text-slate-600 dark:text-gray-400">Sin turnos por ahora.</div>
           ) : (
             <ul className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
               {items.map((a) => (
@@ -368,19 +376,19 @@ export default function AppointmentsPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${statusStyles[a.status]}`}>
-                        {a.status}
+                        {statusLabel[a.status]}
                       </div>
                       <div className="mt-2 font-medium text-slate-900 dark:text-gray-100">
-                        {new Date(a.startAt).toLocaleString()} → {new Date(a.endAt).toLocaleString()}
+                        {formatDate(a.startAt)} → {formatDate(a.endAt)}
                       </div>
                       {me?.role === "PRACTITIONER" ? (
                         <div className="mt-1 text-xs text-slate-600 dark:text-gray-400">
-                          Client: {a.clientName || a.clientId}
+                          Cliente: {a.clientName || a.clientId}
                         </div>
                       ) : (
                         a.practitionerId && (
                           <div className="mt-1 text-xs text-slate-600 dark:text-gray-400">
-                            With: {fullName(practitionersById[a.practitionerId]) || a.practitionerId}
+                            Con: {fullName(practitionersById[a.practitionerId]) || a.practitionerId}
                           </div>
                         )
                       )}
@@ -396,14 +404,14 @@ export default function AppointmentsPage() {
                           disabled={a.status !== "PENDING"}
                           className="inline-flex items-center justify-center rounded-md bg-emerald-600 text-white px-2.5 py-1.5 text-xs font-semibold shadow-sm hover:opacity-90 active:opacity-80 disabled:opacity-40"
                         >
-                          Approve
+                          Aprobar
                         </button>
                         <button
                           onClick={() => cancelMine(a.id)}
                           disabled={a.status === "CANCELED"}
                           className="inline-flex items-center justify-center rounded-md bg-rose-600 text-white px-2.5 py-1.5 text-xs font-semibold shadow-sm hover:opacity-90 active:opacity-80 disabled:opacity-40"
                         >
-                          Cancel
+                          Cancelar
                         </button>
                       </div>
                     )}

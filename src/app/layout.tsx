@@ -15,15 +15,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Appointments App",
-  description: "Auth0 + Spring Boot demo",
+  title: "App de Turnos",
+  description: "Demo de Auth0 + Spring Boot",
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className="h-full">
+    <html lang="es-AR" className="h-full">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 text-slate-800 dark:from-gray-950 dark:to-gray-900 dark:text-gray-100`}
       >
