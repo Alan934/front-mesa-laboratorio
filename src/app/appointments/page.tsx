@@ -14,6 +14,7 @@ type Appointment = {
   endAt: string;
   status: "PENDING" | "APPROVED" | "CANCELED";
   description?: string;
+  clientName?: string; // added: display name for client
 };
 
 type Practitioner = {
@@ -372,10 +373,16 @@ export default function AppointmentsPage() {
                       <div className="mt-2 font-medium text-slate-900 dark:text-gray-100">
                         {new Date(a.startAt).toLocaleString()} → {new Date(a.endAt).toLocaleString()}
                       </div>
-                      {a.practitionerId && (
+                      {me?.role === "PRACTITIONER" ? (
                         <div className="mt-1 text-xs text-slate-600 dark:text-gray-400">
-                          With: {fullName(practitionersById[a.practitionerId]) || a.practitionerId}
+                          Client: {a.clientName || a.clientId}
                         </div>
+                      ) : (
+                        a.practitionerId && (
+                          <div className="mt-1 text-xs text-slate-600 dark:text-gray-400">
+                            With: {fullName(practitionersById[a.practitionerId]) || a.practitionerId}
+                          </div>
+                        )
                       )}
                       {a.description && (
                         <div className="mt-1 text-sm text-slate-600 dark:text-gray-400 line-clamp-2">{a.description}</div>

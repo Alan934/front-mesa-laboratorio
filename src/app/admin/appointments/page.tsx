@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 type Appointment = {
   id: string;
   clientId: string;
+  clientName?: string; // display name
   practitionerId?: string | null;
   startAt: string;
   endAt: string;
@@ -131,7 +132,7 @@ export default function AdminAppointmentsPage() {
                     {new Date(a.startAt).toLocaleString()} → {new Date(a.endAt).toLocaleString()}
                   </div>
                   <div className="mt-1 text-xs text-slate-600 dark:text-gray-400">
-                    Client: <code className="text-[11px]">{a.clientId}</code>
+                    Client: {a.clientName || <code className="text-[11px]">{a.clientId}</code>}
                   </div>
                   {a.practitionerId && (
                     <div className="mt-0.5 text-xs text-slate-600 dark:text-gray-400">
