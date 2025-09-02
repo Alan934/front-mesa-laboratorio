@@ -1,6 +1,6 @@
-# Mesa - Frontend (Next.js)
+# Turnerito - Frontend (Next.js)
 
-Interfaz web para la gestión de turnos. Autenticación con Auth0 y consumo del backend de Mesa.
+Interfaz web para la gestión de turnos. Autenticación con Auth0 y consumo del backend de Turnerito.
 
 - Integrante: Alan Sanjurjo
 
@@ -24,7 +24,7 @@ AUTH0_ISSUER_BASE_URL=https://TU_TENANT.us.auth0.com
 AUTH0_CLIENT_ID=XXXX
 AUTH0_CLIENT_SECRET=XXXX
 AUTH0_SECRET=XXXX
-AUTH0_AUDIENCE=https://mesa-api
+AUTH0_AUDIENCE=XXXX
 
 # Claim donde viajan los roles en el token
 NEXT_PUBLIC_AUTH0_ROLES_CLAIM=https://mesa/roles
