@@ -2,6 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+type Role = "CLIENT" | "PRACTITIONER" | "ADMIN";
+
+type Me = { id: string; role: Role };
+
 type Appointment = {
   id: string;
   clientId: string;
@@ -35,6 +39,7 @@ export default function AppointmentsPage() {
   const [items, setItems] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [me, setMe] = useState<Me | null>(null);
   const [practitioners, setPractitioners] = useState<Practitioner[]>([]);
   const [professions, setProfessions] = useState<Profession[]>([]);
   const [selectedProfessionId, setSelectedProfessionId] = useState<string>("");
@@ -65,17 +70,25 @@ export default function AppointmentsPage() {
     return res.json();
   }
 
+  async function fetchMe(): Promise<Me> {
+    const res = await fetch("/api/proxy/users/me", { cache: "no-store" });
+    if (!res.ok) throw new Error(await res.text() || `Error ${res.status}`);
+    return res.json();
+  }
+
   async function load() {
     setLoading(true);
     setError(null);
     try {
-      // Load professions and appointments; do not auto-select profession/practitioner
-      const [profs, apps] = await Promise.all([
+      // Load professions, appointments and current user
+      const [profs, apps, meData] = await Promise.all([
         fetchProfessions(),
         fetchAppointments(),
+        fetchMe(),
       ]);
       setProfessions(profs);
       setItems(apps);
+      setMe(meData);
       // Keep current selections as-is; if invalid, they will be adjusted in the effect below
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Unexpected error";
@@ -144,6 +157,26 @@ export default function AppointmentsPage() {
       const message = e instanceof Error ? e.message : "Unexpected error";
       setError(message);
     }
+  }
+
+  async function approveMine(id: string) {
+    setError(null);
+    const res = await fetch(`/api/proxy/practitioner/appointments/${id}/approve`, { method: "POST" });
+    if (!res.ok) {
+      const text = await res.text();
+      setError(text || `Error ${res.status}`);
+    }
+    await load();
+  }
+
+  async function cancelMine(id: string) {
+    setError(null);
+    const res = await fetch(`/api/proxy/practitioner/appointments/${id}/cancel`, { method: "POST" });
+    if (!res.ok) {
+      const text = await res.text();
+      setError(text || `Error ${res.status}`);
+    }
+    await load();
   }
 
   const statusStyles: Record<Appointment["status"], string> = {
@@ -348,6 +381,25 @@ export default function AppointmentsPage() {
                         <div className="mt-1 text-sm text-slate-600 dark:text-gray-400 line-clamp-2">{a.description}</div>
                       )}
                     </div>
+
+                    {me?.role === "PRACTITIONER" && (
+                      <div className="flex flex-col items-end gap-2">
+                        <button
+                          onClick={() => approveMine(a.id)}
+                          disabled={a.status !== "PENDING"}
+                          className="inline-flex items-center justify-center rounded-md bg-emerald-600 text-white px-2.5 py-1.5 text-xs font-semibold shadow-sm hover:opacity-90 active:opacity-80 disabled:opacity-40"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => cancelMine(a.id)}
+                          disabled={a.status === "CANCELED"}
+                          className="inline-flex items-center justify-center rounded-md bg-rose-600 text-white px-2.5 py-1.5 text-xs font-semibold shadow-sm hover:opacity-90 active:opacity-80 disabled:opacity-40"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </li>
               ))}
